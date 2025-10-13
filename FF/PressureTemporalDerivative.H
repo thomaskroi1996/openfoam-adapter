@@ -2,7 +2,6 @@
 #define FF_PRESSURE_TEMPORAL_DERIVATIVE_H
 
 #include "CouplingDataUser.H"
-
 #include "fvCFD.H"
 
 namespace preciceAdapter 
@@ -17,6 +16,7 @@ class PressureTemporalDerivative : public CouplingDataUser
         Foam::volScalarField p_;
         Foam::volScalarField pOld_;
         Foam::volScalarField dpdt_;
+        std::vector<double> pOldFromBuffer;
         bool firstStep_ = true;
 
     public:
@@ -27,6 +27,9 @@ class PressureTemporalDerivative : public CouplingDataUser
 
         //Compute dpdt field
         void compute();
+
+        //Compute dpdt field from buffer
+        void compute(double* buffer, double* pOldFromBuffer);
             
         //Return dpdt field
         const Foam::volScalarField& field() const;
@@ -35,7 +38,7 @@ class PressureTemporalDerivative : public CouplingDataUser
         std::size_t write(double* buffer, bool meshConnectivity, const unsigned int dim) final;
 
         //Read the Temporal Derivative of Pressure from the buffer
-        void read(double* buffer, bool meshConnectivity) final;
+        void read(double* buffer, const unsigned int dim) final;
 
         bool isLocationTypeSupported(const bool meshConnectivity) const final;
 
