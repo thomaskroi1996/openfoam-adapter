@@ -394,6 +394,15 @@ void preciceAdapter::Adapter::execute()
 try
 {
 
+    //THOMAS
+    //Here is probably a good idea to compute dpdt
+    //we have to call compute() somwhere here i think
+    //Not sure how writeCouplingData gets the actual data for writing
+    //interfaces.at(i) from Line 520
+    //figure out what the interface object contains
+    //Interface.H has creatBuffer, readCouplingData and writeCouplingData
+    //Have to figure out if PressureTemporalDerivative Object is created once or for every timestep
+
     // The solver has already solved the equations for this timestep.
     // Now call the adapter's methods to perform the coupling.
 
