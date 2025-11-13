@@ -5,17 +5,12 @@ using namespace Foam;
 
 preciceAdapter::FF::PressureTemporalDerivative::PressureTemporalDerivative(
     const Foam::fvMesh& mesh,
-    const std::string name_dpdt) 
+    const std::string name) 
 :   
     mesh_(mesh),
     p_(
     const_cast<volScalarField*>(
-        &mesh.lookupObject<volScalarField>(name_dpdt))), //issue here, we should probably have name_dpdt be "p", since there is no dp/dt in the data yet
-    pOld_(p_.internalField().size()), //this initialisation is not yet the full picutre
-    dpdt_(p_.internalField().size()),
-
-    /*
-    This might work, but we have to be careful to pass "dpdt" as a name
+        &mesh.lookupObject<volScalarField>(name))),
     pOld_(IOobject
         (
             "p", // Field name
@@ -24,7 +19,7 @@ preciceAdapter::FF::PressureTemporalDerivative::PressureTemporalDerivative(
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
         ),
-        mesh)
+        mesh),
     dpdt_(IOobject
         (
             "dpdt", // Field name
@@ -34,19 +29,21 @@ preciceAdapter::FF::PressureTemporalDerivative::PressureTemporalDerivative(
             IOobject::AUTO_WRITE
         ),
         mesh)
-    */
-    pOldFromBuffer()
+    
 {
     dataType_ = scalar;
 }
 
 void preciceAdapter::FF::PressureTemporalDerivative::compute()
 {
+    std::cout << "Computing dpdt..." << std::endl;
     if (firstStep_)
     {
         pOld_ = p_; 
         firstStep_ = false;
     }
+
+    std::cout << dpdt_.internalField()
 
     dpdt_.internalField() = (p_.internalField() - pOld_.internalField()) / mesh_.time().deltaTValue();
 
@@ -66,8 +63,10 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
                                               bool meshConnectivity,
                                               const unsigned int dim)
 {
-    //we don't want to compute dpdt from the buffer, we just use member vars i think
+    //we don't want to compute dpdt from the buffer, we just use member vars
     compute();
+
+    std::cout << "dpdt computed." << std::endl;
 
     int bufferIndex = 0;
 
@@ -91,6 +90,7 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
                 {
                     // Copy dpdt into the buffer
                     buffer[bufferIndex++] = dpdt_->internalField()[currentCell];
+
                 }
             }
         }

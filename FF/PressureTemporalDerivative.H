@@ -23,7 +23,7 @@ class PressureTemporalDerivative : public CouplingDataUser
         //Constructor
         PressureTemporalDerivative(
         const Foam::fvMesh& mesh,
-        const std::string name_dpdt);
+        const std::string name);
 
         //Compute dpdt field
         void compute();

@@ -573,6 +573,22 @@ void preciceAdapter::Interface::writeCouplingData()
         // Write the data into the adapter's buffer
         auto nWrittenData = couplingDataWriter->write(dataBuffer_.data(), meshConnectivity_, dim_);
 
+        std::cout << "Here we access the write function of our variable.\n" ;
+        std::cout << "Interface::writeCouplingData: nWrittenData = " << nWrittenData << std::endl;
+        std::cout << "getDataName(): " << couplingDataWriter->getDataName() << "\n";
+
+        // getDataName() still returns Pressure, why??
+
+        // For some reason this still reads the pressure
+        // either the derivative doesnt work
+        // or we call the wrong class
+        // but i think the derivative doesnt work, because in Adapter.C we get PressureTemporalDerivative in line 272
+
+        // for (std::size_t idx = 0; idx < nWrittenData; ++idx)
+        // {
+        //     std::cout << "dataBuffer_[" << idx << "] = " << dataBuffer_[idx] << std::endl;
+        // }
+
         // Make preCICE write vector or scalar data
         precice_.writeData(
             meshName_,
