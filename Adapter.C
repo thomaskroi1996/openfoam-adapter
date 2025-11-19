@@ -274,21 +274,16 @@ try
             unsigned int inModules = 0;
 
             // Add CHT-related coupling data writers
-            if (CHTenabled_ && CHT_->addWriters(dataName, interface))
-            {
-                inModules++;
-            }
+            if (CHTenabled_ && CHT_->addWriters(dataName, interface)) inModules++;
 
             // Add FSI-related coupling data writers
-            if (FSIenabled_ && FSI_->addWriters(dataName, interface))
-            {
-                inModules++;
-            }
+            if (FSIenabled_ && FSI_->addWriters(dataName, interface)) inModules++;
 
             // Add FF-related coupling data writers
             if (FFenabled_ && FF_->addWriters(dataName, interface))
             {
                 inModules++;
+                std::cout << "FF-enabled and we add " << dataName << ", we have " << inModules << "inModules." << std::endl;
             }
 
             if (inModules == 0)
@@ -513,6 +508,7 @@ void preciceAdapter::Adapter::writeCouplingData()
 
     for (uint i = 0; i < interfaces_.size(); i++)
     {
+        // std::cout << "writeCouplingData() in Adapter.C: " << interfaces_.writeData.at(i)
         interfaces_.at(i)->writeCouplingData();
     }
 
@@ -1127,6 +1123,8 @@ void preciceAdapter::Adapter::readCheckpoint()
         // TODO: Do we need this?
         // *(volScalarFields_.at(i))->boundaryField() = *(volScalarFieldCopies_.at(i))->boundaryField();
 
+
+        // could we do derivative also here??
         int nOldTimes(volScalarFields_.at(i)->nOldTimes());
         if (nOldTimes >= 1)
         {

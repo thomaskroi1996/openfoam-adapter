@@ -887,6 +887,7 @@ $(WM_PROJECT_DIR)/src/meshTools/lnInclude/cellSet.H \
 $(WM_PROJECT_DIR)/src/meshTools/lnInclude/topoSet.H \
 $(WM_PROJECT_DIR)/src/meshTools/lnInclude/topoSetTemplates.C \
 FF/Pressure.H \
+FF/PressureTemporalDerivative.H \
 FF/Temperature.H \
 FF/Alpha.H \
 FF/PressureGradient.H \
@@ -903,6 +904,8 @@ FF/Pressure.C \
 FF/Pressure.H \
 lnInclude/coupledPressureFvPatchField.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fixedFluxExtrapolatedPressureFvPatchScalarField.H \
+FF/PressureTemporalDerivative.C \
+FF/PressureTemporalDerivative.H \
 FF/PressureGradient.C \
 FF/PressureGradient.H \
 FF/Temperature.C \

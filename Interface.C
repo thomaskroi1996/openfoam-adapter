@@ -573,7 +573,7 @@ void preciceAdapter::Interface::writeCouplingData()
         // Write the data into the adapter's buffer
         auto nWrittenData = couplingDataWriter->write(dataBuffer_.data(), meshConnectivity_, dim_);
 
-        std::cout << "Here we access the write function of our variable.\n" ;
+        std::cout << "Here we access the write function of our variable.\n";
         std::cout << "Interface::writeCouplingData: nWrittenData = " << nWrittenData << std::endl;
         std::cout << "getDataName(): " << couplingDataWriter->getDataName() << "\n";
 

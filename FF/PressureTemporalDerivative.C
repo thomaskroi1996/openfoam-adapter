@@ -5,78 +5,33 @@ using namespace Foam;
 
 preciceAdapter::FF::PressureTemporalDerivative::PressureTemporalDerivative(
     const Foam::fvMesh& mesh,
-    const std::string name) 
-:   
-    mesh_(mesh),
-    p_(
-    const_cast<volScalarField*>(
-        &mesh.lookupObject<volScalarField>(name))),
-    pOld_(IOobject
-        (
-            "p", // Field name
-            runTime.timeName(), // Current time
-            mesh, // The mesh object
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh),
-    dpdt_(IOobject
-        (
-            "dpdt", // Field name
-            runTime.timeName(), // Current time
-            mesh, // The mesh object
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh)
-    
+    const std::string namePTD)
+:
+mesh_(mesh),
+p_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD))),
+pOld_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD))),
+dpdt_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD)))
 {
     dataType_ = scalar;
 }
 
-void preciceAdapter::FF::PressureTemporalDerivative::compute()
-{
-    std::cout << "Computing dpdt..." << std::endl;
-    if (firstStep_)
-    {
-        pOld_ = p_; 
-        firstStep_ = false;
-    }
-
-    std::cout << dpdt_.internalField()
-
-    dpdt_.internalField() = (p_.internalField() - pOld_.internalField()) / mesh_.time().deltaTValue();
-
-    pOld_ = p_; // update previous pressure
-}
-
-void preciceAdapter::FF::PressureTemporalDerivative::compute(double* buffer, double* pOldFromBuffer_){
-    //probably not useful, but just in case
-}
-
-const Foam::volScalarField& preciceAdapter::FF::PressureTemporalDerivative::field() const
-{
-    return dpdt_;
-}
-
 std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer,
-                                              bool meshConnectivity,
-                                              const unsigned int dim)
+                                                                  bool meshConnectivity,
+                                                                  const unsigned int dim)
 {
-    //we don't want to compute dpdt from the buffer, we just use member vars
-    compute();
-
-    std::cout << "dpdt computed." << std::endl;
-
+    
     int bufferIndex = 0;
-
+    
     if (this->locationType_ == LocationType::volumeCenters)
     {
         if (cellSetNames_.empty())
         {
             for (const auto& cell : dpdt_->internalField())
             {
-                buffer[bufferIndex++] = cell;
+                // when implementing more schemes, move rhs to function, so that its more readable
+                buffer[bufferIndex++] = (p_->internalField()[cell] - pOld_->internalField()[cell]) / mesh_.time().deltaTValue();
+                pOld_->internalField()[cell] = p_->internalField()[cell];
+                // buffer[bufferIndex++] = cell;
             }
         }
         else
@@ -85,28 +40,24 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
             {
                 cellSet overlapRegion(dpdt_->mesh(), cellSetName);
                 const labelList& cells = overlapRegion.toc();
-
+                
                 for (const auto& currentCell : cells)
                 {
-                    // Copy dpdt into the buffer
-                    buffer[bufferIndex++] = dpdt_->internalField()[currentCell];
-
+                    buffer[bufferIndex++] = (p_->internalField()[currentCell] - pOld_->internalField()[currentCell]) / mesh_.time().deltaTValue();
+                    pOld_->internalField()[currentCell] = p_->internalField()[currentCell];
                 }
             }
         }
     }
-
-    // For every boundary patch of the interface
+    
     for (uint j = 0; j < patchIDs_.size(); j++)
     {
         int patchID = patchIDs_.at(j);
-
-        // For every cell of the patch
+        
         forAll(dpdt_->boundaryFieldRef()[patchID], i)
         {
-            // Copy dpdt into the buffer
-            buffer[bufferIndex++] =
-                dpdt_->boundaryFieldRef()[patchID][i];
+            buffer[bufferIndex++] = (p_->boundaryFieldRef()[patchID][i] - pOld_->boundaryFieldRef()[patchID][i]) / mesh_.time().deltaTValue();
+            pOld_->boundaryFieldRef()[patchID][i] = p_->boundaryFieldRef()[patchID][i];
         }
     }
 
@@ -135,19 +86,16 @@ void preciceAdapter::FF::PressureTemporalDerivative::read(double* buffer, const 
 
                 for (const auto& currentCell : cells)
                 {
-                    // Copy the pressure into the buffer
                     dpdt_->ref()[currentCell] = buffer[bufferIndex++];
                 }
             }
         }
     }
 
-    // For every boundary patch of the interface
     for (uint j = 0; j < patchIDs_.size(); j++)
     {
         int patchID = patchIDs_.at(j);
 
-        // Get the pressure value boundary patch
         scalarField* valuePatchPtr = &dpdt_->boundaryFieldRef()[patchID];
         if (isA<coupledPressureFvPatchField>(dpdt_->boundaryFieldRef()[patchID]))
         {
@@ -157,10 +105,8 @@ void preciceAdapter::FF::PressureTemporalDerivative::read(double* buffer, const 
         }
         scalarField& valuePatch = *valuePatchPtr;
 
-        // For every cell of the patch
         forAll(dpdt_->boundaryFieldRef()[patchID], i)
         {
-            // Set the pressure as the buffer value
             valuePatch[i] =
                 buffer[bufferIndex++];
         }

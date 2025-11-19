@@ -4,47 +4,37 @@
 #include "CouplingDataUser.H"
 #include "fvCFD.H"
 
-namespace preciceAdapter 
+namespace preciceAdapter
 {
 namespace FF
 {
 
 class PressureTemporalDerivative : public CouplingDataUser
 {
-    private:
-        Foam::fvMesh mesh_;
-        Foam::volScalarField p_;
-        Foam::volScalarField pOld_;
-        Foam::volScalarField dpdt_;
-        std::vector<double> pOldFromBuffer;
-        bool firstStep_ = true;
+private:
+    const  Foam::fvMesh& mesh_; // needed to access mesh outside of constructor (for deltaTValue() method, dt)
+    Foam::volScalarField* p_;
+    Foam::volScalarField* pOld_;
+    Foam::volScalarField* dpdt_;
+    std::vector<double> pOldFromBuffer;
+    bool firstStep_ = true;
 
-    public:
-        //Constructor
-        PressureTemporalDerivative(
+public:
+    //Constructor
+    PressureTemporalDerivative(
         const Foam::fvMesh& mesh,
-        const std::string name);
+        const std::string namePTD);
 
-        //Compute dpdt field
-        void compute();
+    //Write Temporal Derivative of Pressure into the buffer
+    std::size_t write(double* buffer, bool meshConnectivity, const unsigned int dim) final;
 
-        //Compute dpdt field from buffer
-        void compute(double* buffer, double* pOldFromBuffer);
-            
-        //Return dpdt field
-        const Foam::volScalarField& field() const;
+    //Read the Temporal Derivative of Pressure from the buffer
+    void read(double* buffer, const unsigned int dim) final;
 
-        //Write Temporal Derivative of Pressure into the buffer
-        std::size_t write(double* buffer, bool meshConnectivity, const unsigned int dim) final;
+    bool isLocationTypeSupported(const bool meshConnectivity) const final;
 
-        //Read the Temporal Derivative of Pressure from the buffer
-        void read(double* buffer, const unsigned int dim) final;
-
-        bool isLocationTypeSupported(const bool meshConnectivity) const final;
-
-        //- Get the name of the current data field
-        std::string getDataName() const final;
-
+    //- Get the name of the current data field
+    std::string getDataName() const final;
 };
 
 }
@@ -52,3 +42,4 @@ class PressureTemporalDerivative : public CouplingDataUser
 }
 
 #endif
+

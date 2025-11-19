@@ -59,6 +59,13 @@ bool preciceAdapter::FF::FluidFluid::readConfig(const IOdictionary& adapterConfi
     nameP_ = FFdict.lookupOrDefault<word>("nameP", "p");
     DEBUG(adapterInfo("    pressure field name : " + nameP_));
 
+    // Read the name of the pressure temporal derivative field (if different)
+    // this says p because in FF.H we also name it p, this is because we read pressure for the PressureTemporalDerivative class
+    // i guess the gradients just use the normal variable names, so we maybe dont have to define extra namePTD here?
+    // for now it is easier to understand the process and outline
+    namePTD_ = FFdict.lookupOrDefault<word>("namePTD", "p"); 
+    DEBUG(adapterInfo("    pressure temporal derivative field name : " + namePTD_));
+
     // Read the name of the temperature field (if different)
     nameT_ = FFdict.lookupOrDefault<word>("nameT", "T");
     DEBUG(adapterInfo("    temperature field name : " + nameT_));
@@ -144,6 +151,13 @@ bool preciceAdapter::FF::FluidFluid::addWriters(std::string dataName, Interface*
             dataName,
             new Pressure(mesh_, nameP_));
         DEBUG(adapterInfo("Added writer: Pressure."));
+    }
+    else if (dataName.find("PressureTemporalDerivative") == 0)
+    {
+        interface->addCouplingDataWriter(
+            dataName,
+            new PressureTemporalDerivative(mesh_, namePTD_)); // constructor only gets 2, but will initialise 3 fields for p_, pOld_ and dp_dt
+        DEBUG(adapterInfo("Added writer: PressureTemporalDerivative."));
     }
     else if (dataName.find("FlowTemperatureGradient") == 0)
     {

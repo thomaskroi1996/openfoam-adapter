@@ -5,6 +5,7 @@
 
 #include "FF/Velocity.H"
 #include "FF/Pressure.H"
+#include "FF/PressureTemporalDerivative.H"
 #include "FF/Temperature.H"
 #include "FF/Alpha.H"
 #include "FF/PressureGradient.H"
@@ -37,6 +38,10 @@ protected:
 
     //- Name of the pressure field
     std::string nameP_ = "p";
+
+    //- Name of the pressure temporal derivative field
+    // should still be p, because pressure is what we read right?
+    std::string namePTD_ = "p";
 
     //- Name of the temperature field
     std::string nameT_ = "T";
