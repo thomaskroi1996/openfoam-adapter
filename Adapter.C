@@ -269,7 +269,7 @@ try
         {
             std::string dataName = interfacesConfig_.at(i).writeData.at(j);
 
-            std::cout << "Adding writer for data: " << dataName << std::endl;
+            std::cout << "Adding writer for data in Adapter.C: " << dataName << std::endl;
 
             unsigned int inModules = 0;
 
@@ -508,7 +508,6 @@ void preciceAdapter::Adapter::writeCouplingData()
 
     for (uint i = 0; i < interfaces_.size(); i++)
     {
-        // std::cout << "writeCouplingData() in Adapter.C: " << interfaces_.writeData.at(i)
         interfaces_.at(i)->writeCouplingData();
     }
 

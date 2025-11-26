@@ -123,6 +123,7 @@ std::string preciceAdapter::FF::FluidFluid::determineSolverType()
 bool preciceAdapter::FF::FluidFluid::addWriters(std::string dataName, Interface* interface)
 {
     bool found = true; // Set to false later, if needed.
+    std::cout << "dataName in FF.C addWriters(): " << dataName << std::endl;
 
     if (dataName.find("VelocityGradient") == 0)
     {
@@ -145,19 +146,20 @@ bool preciceAdapter::FF::FluidFluid::addWriters(std::string dataName, Interface*
             new PressureGradient(mesh_, nameP_));
         DEBUG(adapterInfo("Added writer: Pressure Gradient."));
     }
+    else if (dataName.find("PressureTemporalDerivative") == 0)
+    {
+        interface->addCouplingDataWriter(
+            dataName,
+            new PressureTemporalDerivative(mesh_, namePTD_)); // constructor only gets 2, but will initialise 3 fields for p_, pOld_ and dp_dt
+        std::cout << "Added PressureTemporalDerivative in FF.C " << std::endl;
+        DEBUG(adapterInfo("Added writer: PressureTemporalDerivative."));
+    }
     else if (dataName.find("Pressure") == 0)
     {
         interface->addCouplingDataWriter(
             dataName,
             new Pressure(mesh_, nameP_));
         DEBUG(adapterInfo("Added writer: Pressure."));
-    }
-    else if (dataName.find("PressureTemporalDerivative") == 0)
-    {
-        interface->addCouplingDataWriter(
-            dataName,
-            new PressureTemporalDerivative(mesh_, namePTD_)); // constructor only gets 2, but will initialise 3 fields for p_, pOld_ and dp_dt
-        DEBUG(adapterInfo("Added writer: PressureTemporalDerivative."));
     }
     else if (dataName.find("FlowTemperatureGradient") == 0)
     {

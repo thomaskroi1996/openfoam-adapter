@@ -9,18 +9,38 @@ preciceAdapter::FF::PressureTemporalDerivative::PressureTemporalDerivative(
 :
 mesh_(mesh),
 p_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD))),
-pOld_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD))),
-dpdt_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD)))
+dpdt_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD))),
+firstStep_(true)
 {
     dataType_ = scalar;
 }
 
+// this function gets called in Interface.C line 574-ish
+// double* buffer points to a memory location that has a size of: dim_ * numDataLocations_ (vector) or numDataLocations_ (scalar)
+// we can just create a new buffer of the same size for pOld_
+// cleaner would be to somehow use the openFoam API for using writeable objects for pOld_
+// because pOld_->internalField()[cell] = p_->internalField()[cell] doesnt work when we instantiate with lookupObject or lookupObjectRef
 std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer,
                                                                   bool meshConnectivity,
                                                                   const unsigned int dim)
 {
-    
+
+    std::cout << "We are now in PressureTemporalDerivative::write()" << std::endl;
     int bufferIndex = 0;
+
+    // pOld_ = p_;
+    // this should be a deep copy
+    // but should we instantiate this every timestep? probably not
+    // can't be private member because we dont have access to buffer
+    // so only create if firstStep_ = true
+    if (firstStep_)
+    {
+        std::cout << "firstStep_: " << firstStep_ << std::endl;
+        size_t nCells = dpdt_->internalField().size();
+        std::cout << "nCells: " << nCells << std::endl;
+        pOld_.resize(80200); // JUST FOR TESTING OBVIOUSLY, it works that way! nCells = 80000
+        firstStep_ = false;
+    }
     
     if (this->locationType_ == LocationType::volumeCenters)
     {
@@ -29,9 +49,16 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
             for (const auto& cell : dpdt_->internalField())
             {
                 // when implementing more schemes, move rhs to function, so that its more readable
-                buffer[bufferIndex++] = (p_->internalField()[cell] - pOld_->internalField()[cell]) / mesh_.time().deltaTValue();
-                pOld_->internalField()[cell] = p_->internalField()[cell];
-                // buffer[bufferIndex++] = cell;
+                // std::cout << mesh_.time().deltaTValue() << std::endl; deltaTValue is 5e-5
+                if ((p_->internalField()[cell] - pOld_[bufferIndex]) > 1e10)
+                {
+                    std::cout << "p_: " << p_->internalField()[cell] << std::endl;
+                    std::cout << "pOld_: " << pOld_[bufferIndex] << std::endl;
+                    std::cout << "Subtraction part of derivative: " << (p_->internalField()[cell] - pOld_[bufferIndex]) << std::endl;
+                }
+                buffer[bufferIndex] = (p_->internalField()[cell] - pOld_[bufferIndex]) / mesh_.time().deltaTValue();
+                pOld_[bufferIndex] = p_->internalField()[cell];
+                bufferIndex++;
             }
         }
         else
@@ -43,8 +70,9 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
                 
                 for (const auto& currentCell : cells)
                 {
-                    buffer[bufferIndex++] = (p_->internalField()[currentCell] - pOld_->internalField()[currentCell]) / mesh_.time().deltaTValue();
-                    pOld_->internalField()[currentCell] = p_->internalField()[currentCell];
+                    buffer[bufferIndex] = (p_->internalField()[currentCell] - pOld_[bufferIndex]) / mesh_.time().deltaTValue();
+                    pOld_[bufferIndex] = p_->internalField()[currentCell];
+                    bufferIndex++;                
                 }
             }
         }
@@ -56,8 +84,9 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
         
         forAll(dpdt_->boundaryFieldRef()[patchID], i)
         {
-            buffer[bufferIndex++] = (p_->boundaryFieldRef()[patchID][i] - pOld_->boundaryFieldRef()[patchID][i]) / mesh_.time().deltaTValue();
-            pOld_->boundaryFieldRef()[patchID][i] = p_->boundaryFieldRef()[patchID][i];
+            buffer[bufferIndex] = (p_->boundaryFieldRef()[patchID][i] - pOld_[bufferIndex]) / mesh_.time().deltaTValue();
+            pOld_[bufferIndex] = p_->boundaryFieldRef()[patchID][i];
+            bufferIndex++;
         }
     }
 

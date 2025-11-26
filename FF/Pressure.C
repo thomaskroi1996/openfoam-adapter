@@ -23,7 +23,12 @@ std::size_t preciceAdapter::FF::Pressure::write(double* buffer, bool meshConnect
         {
             for (const auto& cell : p_->internalField())
             {
+                if ((p_->internalField()[cell]) > 1e10)
+                {
+                    std::cout << "p_: " << p_->internalField()[cell] << std::endl;
+                }
                 buffer[bufferIndex++] = cell;
+                // std::cout << buffer[bufferIndex] << std::endl;
             }
         }
         else
