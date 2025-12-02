@@ -9,7 +9,7 @@ preciceAdapter::FF::PressureTemporalDerivative::PressureTemporalDerivative(
 :
 mesh_(mesh),
 p_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD))),
-dpdt_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD))),
+// dpdt_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD))),
 firstStep_(true)
 {
     dataType_ = scalar;
@@ -36,9 +36,9 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
     if (firstStep_)
     {
         std::cout << "firstStep_: " << firstStep_ << std::endl;
-        size_t nCells = dpdt_->internalField().size();
+        size_t nCells = p_->internalField().size();
         std::cout << "nCells: " << nCells << std::endl;
-        pOld_.resize(80200); // JUST FOR TESTING OBVIOUSLY, it works that way! nCells = 80000
+        pOld_.resize(80200, 0.0); // JUST FOR TESTING OBVIOUSLY, it works that way! nCells = 80000
         firstStep_ = false;
     }
     
@@ -46,18 +46,18 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
     {
         if (cellSetNames_.empty())
         {
-            for (const auto& cell : dpdt_->internalField())
+            for (const auto& cell : p_->internalField())
             {
                 // when implementing more schemes, move rhs to function, so that its more readable
                 // std::cout << mesh_.time().deltaTValue() << std::endl; deltaTValue is 5e-5
-                if ((p_->internalField()[cell] - pOld_[bufferIndex]) > 1e10)
-                {
-                    std::cout << "p_: " << p_->internalField()[cell] << std::endl;
-                    std::cout << "pOld_: " << pOld_[bufferIndex] << std::endl;
-                    std::cout << "Subtraction part of derivative: " << (p_->internalField()[cell] - pOld_[bufferIndex]) << std::endl;
-                }
-                buffer[bufferIndex] = (p_->internalField()[cell] - pOld_[bufferIndex]) / mesh_.time().deltaTValue();
-                pOld_[bufferIndex] = p_->internalField()[cell];
+                // if ((p_->internalField()[cell] - pOld_[bufferIndex]) > 1e10)
+                // {
+                //     std::cout << "p_: " << p_->internalField()[cell] << std::endl;
+                //     std::cout << "pOld_: " << pOld_[bufferIndex] << std::endl;
+                //     std::cout << "Subtraction part of derivative: " << (p_->internalField()[cell] - pOld_[bufferIndex]) << std::endl;
+                // }
+                buffer[bufferIndex] = (cell - pOld_[bufferIndex]) / mesh_.time().deltaTValue();
+                pOld_[bufferIndex] = cell;
                 bufferIndex++;
             }
         }
@@ -65,7 +65,7 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
         {
             for (const auto& cellSetName : cellSetNames_)
             {
-                cellSet overlapRegion(dpdt_->mesh(), cellSetName);
+                cellSet overlapRegion(p_->mesh(), cellSetName);
                 const labelList& cells = overlapRegion.toc();
                 
                 for (const auto& currentCell : cells)
@@ -82,7 +82,7 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
     {
         int patchID = patchIDs_.at(j);
         
-        forAll(dpdt_->boundaryFieldRef()[patchID], i)
+        forAll(p_->boundaryFieldRef()[patchID], i)
         {
             buffer[bufferIndex] = (p_->boundaryFieldRef()[patchID][i] - pOld_[bufferIndex]) / mesh_.time().deltaTValue();
             pOld_[bufferIndex] = p_->boundaryFieldRef()[patchID][i];
@@ -101,7 +101,7 @@ void preciceAdapter::FF::PressureTemporalDerivative::read(double* buffer, const 
     {
         if (cellSetNames_.empty())
         {
-            for (auto& cell : dpdt_->ref())
+            for (auto& cell : p_->ref())
             {
                 cell = buffer[bufferIndex++];
             }
@@ -110,12 +110,12 @@ void preciceAdapter::FF::PressureTemporalDerivative::read(double* buffer, const 
         {
             for (const auto& cellSetName : cellSetNames_)
             {
-                cellSet overlapRegion(dpdt_->mesh(), cellSetName);
+                cellSet overlapRegion(p_->mesh(), cellSetName);
                 const labelList& cells = overlapRegion.toc();
 
                 for (const auto& currentCell : cells)
                 {
-                    dpdt_->ref()[currentCell] = buffer[bufferIndex++];
+                    p_->ref()[currentCell] = buffer[bufferIndex++];
                 }
             }
         }
@@ -125,16 +125,16 @@ void preciceAdapter::FF::PressureTemporalDerivative::read(double* buffer, const 
     {
         int patchID = patchIDs_.at(j);
 
-        scalarField* valuePatchPtr = &dpdt_->boundaryFieldRef()[patchID];
-        if (isA<coupledPressureFvPatchField>(dpdt_->boundaryFieldRef()[patchID]))
+        scalarField* valuePatchPtr = &p_->boundaryFieldRef()[patchID];
+        if (isA<coupledPressureFvPatchField>(p_->boundaryFieldRef()[patchID]))
         {
             valuePatchPtr = &refCast<coupledPressureFvPatchField>(
-                                 dpdt_->boundaryFieldRef()[patchID])
+                                 p_->boundaryFieldRef()[patchID])
                                  .refValue();
         }
         scalarField& valuePatch = *valuePatchPtr;
 
-        forAll(dpdt_->boundaryFieldRef()[patchID], i)
+        forAll(p_->boundaryFieldRef()[patchID], i)
         {
             valuePatch[i] =
                 buffer[bufferIndex++];
