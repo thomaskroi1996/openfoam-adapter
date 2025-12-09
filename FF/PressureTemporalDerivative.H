@@ -14,8 +14,7 @@ class PressureTemporalDerivative : public CouplingDataUser
 private:
     const  Foam::fvMesh& mesh_; // needed to access mesh outside of constructor (for deltaTValue() method, dt)
     Foam::volScalarField* p_;
-    std::vector<double> pOld_; 
-    // Foam::volScalarField* dpdt_; since we write into buffer, no need to have dpdt_ as member
+    std::vector<double> pOld_;
     bool firstStep_;
 
 public:

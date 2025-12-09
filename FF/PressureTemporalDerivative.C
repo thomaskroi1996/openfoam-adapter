@@ -9,7 +9,6 @@ preciceAdapter::FF::PressureTemporalDerivative::PressureTemporalDerivative(
 :
 mesh_(mesh),
 p_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD))),
-// dpdt_(const_cast<volScalarField*>(&mesh.lookupObject<volScalarField>(namePTD))),
 firstStep_(true)
 {
     dataType_ = scalar;
@@ -28,9 +27,7 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
     std::cout << "We are now in PressureTemporalDerivative::write()" << std::endl;
     int bufferIndex = 0;
 
-    // pOld_ = p_;
-    // this should be a deep copy
-    // but should we instantiate this every timestep? probably not
+
     // can't be private member because we dont have access to buffer
     // so only create if firstStep_ = true
     if (firstStep_)
@@ -56,7 +53,7 @@ std::size_t preciceAdapter::FF::PressureTemporalDerivative::write(double* buffer
                 //     std::cout << "pOld_: " << pOld_[bufferIndex] << std::endl;
                 //     std::cout << "Subtraction part of derivative: " << (p_->internalField()[cell] - pOld_[bufferIndex]) << std::endl;
                 // }
-                buffer[bufferIndex] = (cell - pOld_[bufferIndex]) / mesh_.time().deltaTValue();
+                buffer[bufferIndex] = (cell - pOld_[bufferIndex]) / mesh_.time().deltaTValue(); // 
                 pOld_[bufferIndex] = cell;
                 bufferIndex++;
             }
